@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-sleeve="silent-alarm">
 <head>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -24,11 +24,12 @@
 
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" />
+	<!-- Cabin is only downloaded where Gill Sans, the Bloc Party typeface, isn't installed. -->
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Cabin:ital,wght@0,400..600;1,400..600&display=swap" />
 	<link rel="preconnect" href="https://ws.audioscrobbler.com" crossorigin />
 	<link rel="preconnect" href="https://lastfm.freetls.fastly.net" crossorigin />
-	<link rel="preload" as="image" href="images/bg.jpg" />
 	<link rel="preload" as="image" href="images/oak-honey.webp" type="image/webp" />
+	<link rel="preload" as="image" href="images/bg.jpg" />
 
 	<link rel="stylesheet" href="assets/site.css" />
 	<script>
@@ -36,10 +37,52 @@
 		// hiding anything for good: after 4 seconds everything shows regardless.
 		document.documentElement.classList.add('js');
 		setTimeout(function () { document.documentElement.classList.add('is-shown', 'is-ready'); }, 4000);
+
+		// Every visit pulls the next sleeve from a shuffled stack of Bloc Party albums, so you see all
+		// seven before one comes round again. ?sleeve=hymns (or any other name below) asks for one.
+		(function () {
+			var all = ['silent-alarm', 'weekend', 'intimacy', 'four', 'hymns', 'alpha-games', 'anatomy'];
+			var pick = new URLSearchParams(location.search).get('sleeve');
+			if (all.indexOf(pick) < 0) {
+				var stack = [], last = null;
+				try {
+					stack = JSON.parse(localStorage.getItem('sleeves')) || [];
+					last = localStorage.getItem('sleeve');
+				} catch (e) {}
+				stack = stack.filter(function (id) { return all.indexOf(id) >= 0; });
+				if (!stack.length) {
+					stack = all.slice();
+					for (var i = stack.length - 1; i > 0; i--) {
+						var j = Math.floor(Math.random() * (i + 1)), t = stack[i];
+						stack[i] = stack[j];
+						stack[j] = t;
+					}
+					if (stack[0] === last) stack.push(stack.shift());
+				}
+				pick = stack.shift();
+				try {
+					localStorage.setItem('sleeves', JSON.stringify(stack));
+					localStorage.setItem('sleeve', pick);
+				} catch (e) {}
+			}
+			document.documentElement.setAttribute('data-sleeve', pick);
+		})();
 	</script>
 	<script src="assets/site.js" defer></script>
 </head>
 <body>
+
+	<!-- Each sleeve's colours: the photo in grey, every shade swapped for a colour from that album -->
+	<svg class="tones" aria-hidden="true" focusable="false">
+		<filter id="tone-weekend" color-interpolation-filters="sRGB" primitiveUnits="objectBoundingBox" x="0" y="0" width="1" height="1"><feGaussianBlur stdDeviation=".03 .002" /><feComponentTransfer><feFuncR type="table" tableValues=".039 .051 .063 .075 .087 .099 .111 .127 .183 .239 .295 .351 .448 .547 .646 .735 .797 .859 .92 .945 .945 .945 .954 .965" /><feFuncG type="table" tableValues=".035 .046 .057 .068 .078 .089 .1 .114 .155 .195 .236 .277 .34 .404 .468 .533 .601 .669 .737 .8 .858 .916 .945 .969" /><feFuncB type="table" tableValues=".02 .024 .029 .033 .038 .042 .047 .052 .062 .073 .083 .094 .118 .142 .167 .199 .25 .301 .352 .436 .543 .65 .745 .839" /></feComponentTransfer></filter>
+		<filter id="tone-intimacy" color-interpolation-filters="sRGB" primitiveUnits="objectBoundingBox" x="0" y="0" width="1" height="1"><feComponentTransfer><feFuncR type="table" tableValues=".114 .136 .159 .181 .204 .226 .257 .31 .364 .418 .471 .529 .588 .647 .706 .75 .788 .827 .864 .89 .915 .938 .955 .973" /><feFuncG type="table" tableValues=".043 .053 .064 .074 .084 .094 .112 .153 .194 .235 .276 .329 .389 .45 .51 .563 .613 .663 .713 .766 .818 .866 .901 .937" /><feFuncB type="table" tableValues=".067 .08 .093 .106 .118 .131 .152 .193 .235 .277 .319 .372 .431 .49 .549 .597 .641 .684 .728 .774 .819 .862 .898 .933" /></feComponentTransfer></filter>
+		<filter id="tone-four" color-interpolation-filters="sRGB" primitiveUnits="objectBoundingBox" x="0" y="0" width="1" height="1"><feComponentTransfer><feFuncR type="table" tableValues=".024 .024 .024 .024 .024 .024 .025 .025 .025 .025 .025 .026 .026 .026 .026 .026 .027 .027 .027 .027 .027 .027 .065 .102 .139 .176 .214 .251 .288 .325 .363 .4 .437 .475 .512 .549 .579 .609 .639 .669 .699 .729 .759 .79 .82 .85 .88 .91 .94 .97 1" /><feFuncG type="table" tableValues=".024 .024 .024 .024 .024 .024 .025 .025 .025 .025 .025 .026 .026 .026 .026 .026 .027 .027 .027 .027 .027 .027 .065 .102 .139 .176 .214 .251 .288 .325 .363 .4 .437 .475 .512 .549 .579 .609 .639 .669 .699 .729 .759 .79 .82 .85 .88 .91 .94 .97 1" /><feFuncB type="table" tableValues=".024 .024 .024 .024 .024 .024 .025 .025 .025 .025 .025 .026 .026 .026 .026 .026 .027 .027 .027 .027 .027 .027 .065 .102 .139 .176 .214 .251 .288 .325 .363 .4 .437 .475 .512 .549 .579 .609 .639 .669 .699 .729 .759 .79 .82 .85 .88 .91 .94 .97 1" /></feComponentTransfer></filter>
+		<filter id="tone-hymns" color-interpolation-filters="sRGB" primitiveUnits="objectBoundingBox" x="0" y="0" width="1" height="1"><feGaussianBlur stdDeviation=".002 .06" /><feComponentTransfer><feFuncR type="table" tableValues=".051 .052 .054 .055 .056 .058 .059 .06 .062 .08 .146 .212 .278 .344 .41 .495 .587 .679 .771 .863 .925 .95 .975 1" /><feFuncG type="table" tableValues=".043 .044 .045 .046 .047 .048 .049 .049 .05 .068 .132 .195 .259 .323 .387 .472 .565 .658 .75 .843 .908 .939 .969 1" /><feFuncB type="table" tableValues=".039 .04 .041 .042 .043 .044 .045 .045 .046 .063 .124 .185 .246 .307 .368 .453 .546 .638 .731 .824 .891 .927 .964 1" /></feComponentTransfer></filter>
+		<filter id="tone-alpha" color-interpolation-filters="sRGB" primitiveUnits="objectBoundingBox" x="0" y="0" width="1" height="1"><feComponentTransfer><feFuncR type="table" tableValues=".071 .072 .074 .076 .078 .08 .082 .084 .086 .132 .195 .259 .377 .55 .724 .824 .899 .951 .972 .993 1 1 1 1" /><feFuncG type="table" tableValues=".075 .076 .078 .08 .082 .084 .086 .088 .09 .087 .082 .077 .083 .1 .117 .147 .181 .244 .345 .446 .536 .62 .704 .788" /><feFuncB type="table" tableValues=".094 .096 .099 .101 .104 .106 .108 .111 .113 .123 .137 .15 .18 .225 .271 .308 .342 .383 .432 .482 .547 .618 .689 .761" /></feComponentTransfer></filter>
+		<filter id="tone-intimacy-back" color-interpolation-filters="sRGB" primitiveUnits="objectBoundingBox" x="0" y="0" width="1" height="1"><feComponentTransfer><feFuncR type="table" tableValues=".125 .137 .149 .161 .173 .185 .197 .209 .221 .233 .258 .286 .315 .343 .372 .4 .429 .462 .495 .529 .562 .596 .629 .663" /><feFuncG type="table" tableValues=".149 .163 .176 .19 .204 .217 .231 .245 .258 .272 .298 .328 .357 .387 .416 .446 .475 .508 .54 .572 .605 .637 .67 .702" /><feFuncB type="table" tableValues=".165 .179 .194 .208 .223 .237 .252 .266 .281 .295 .322 .352 .382 .413 .443 .473 .503 .534 .565 .597 .628 .659 .69 .722" /></feComponentTransfer></filter>
+		<filter id="tone-anatomy-back" color-interpolation-filters="sRGB" primitiveUnits="objectBoundingBox" x="0" y="0" width="1" height="1"><feComponentTransfer><feFuncR type="table" tableValues=".11 .124 .138 .152 .166 .18 .194 .208 .222 .236 .261 .289 .317 .345 .373 .401 .429 .461 .494 .527 .56 .593 .626 .659" /><feFuncG type="table" tableValues=".102 .115 .128 .14 .153 .166 .179 .191 .204 .217 .241 .267 .293 .319 .345 .371 .397 .43 .463 .496 .529 .562 .594 .627" /><feFuncB type="table" tableValues=".086 .097 .108 .12 .131 .142 .153 .164 .175 .186 .206 .229 .252 .275 .297 .32 .343 .374 .407 .439 .471 .504 .536 .569" /></feComponentTransfer></filter>
+		<filter id="tone-anatomy" color-interpolation-filters="sRGB" primitiveUnits="objectBoundingBox" x="0" y="0" width="1" height="1"><feComponentTransfer><feFuncR type="table" tableValues=".078 .108 .138 .168 .198 .228 .281 .36 .44 .519 .598 .668 .736 .804 .844 .868 .892 .911 .922 .933 .944 .958 .971 .984" /><feFuncG type="table" tableValues=".008 .009 .011 .012 .014 .015 .02 .03 .039 .048 .058 .081 .107 .132 .218 .333 .449 .565 .68 .796 .892 .917 .943 .969" /><feFuncB type="table" tableValues=".008 .011 .014 .016 .019 .022 .03 .042 .055 .068 .081 .093 .105 .117 .184 .279 .374 .481 .601 .722 .824 .863 .902 .941" /></feComponentTransfer></filter>
+	</svg>
 
 	<div class="room" aria-hidden="true"><div class="room__lights"></div></div>
 
@@ -69,27 +112,35 @@
 				<span class="record__sheen"></span>
 			</div>
 
+			<!-- Set down on the desk while you read the back of the sleeve -->
+			<div class="tea" id="tea" aria-hidden="true">
+				<span class="tea__cup"></span>
+				<span class="tea__steam"><i></i><i></i></span>
+			</div>
+
 			<div class="sleeve">
 				<div class="sleeve__inner">
 
 					<section class="face front" id="front" aria-label="Front cover">
-						<div class="front__photo"></div>
-						<div class="front__wear"></div>
+						<div class="front__photo"><div class="front__img"></div></div>
+						<div class="front__art"></div>
 						<header class="front__type">
 							<h1>Jeroen Sannen</h1>
 							<p>Heavy Rotation</p>
 						</header>
 						<p class="front__cat" id="cat-front">JS 0000</p>
+						<div class="wear"></div>
 						<p class="sticker" id="sticker">
 							<span class="sticker__top" id="sticker-top">contains the hit single</span>
 							<span class="sticker__title" id="sticker-title">“The Mountains &amp; the Music”</span>
 							<span class="sticker__foot" id="sticker-foot">limited pressing</span>
 						</p>
-						<div class="front__wrap"></div>
-						<button class="front__flip" type="button" data-flip aria-label="Flip the sleeve to read the back" disabled></button>
+						<div class="wrap"></div>
+						<button class="front__flip" type="button" data-flip aria-label="Turn the sleeve over to see the tracklist" disabled></button>
 					</section>
 
 					<section class="face back" id="back" aria-label="Back cover" inert>
+						<div class="back__art"><div class="back__img"></div></div>
 						<div class="sides">
 							<section class="side">
 								<h2>Side A — this month:</h2>
@@ -105,7 +156,7 @@
 							<div class="fine">
 								<p id="fine-credits">Produced, arranged and played to death by Jeroen Sannen.</p>
 								<p id="fine-recorded"></p>
-								<p class="fine__legal">℗ &amp; © Jeroen Sannen. All rights reserved. Unauthorised skipping, shuffling, lending and playing on low volume of this record prohibited. Sleeve design after Bloc Party’s Silent Alarm. Stereo · 33⅓ rpm.</p>
+								<p class="fine__legal">℗ &amp; © Jeroen Sannen. All rights reserved. Unauthorised skipping, shuffling, lending and playing on low volume of this record prohibited. Sleeve design after Bloc Party’s <i id="fine-after">Silent Alarm</i>. Stereo · 33⅓ rpm.</p>
 								<p class="fine__urls">www.jeroensannen.be<br />www.last.fm/user/geronimo206<br />www.instagram.com/geronimo206</p>
 							</div>
 							<div class="back__marks">
@@ -116,28 +167,30 @@
 								</div>
 							</div>
 						</footer>
+						<div class="wear"></div>
+						<div class="wrap"></div>
 					</section>
 
 				</div>
 			</div>
 		</div>
 
+		<!-- Stitched leather tags, laser-engraved, lying on the desk -->
 		<div class="deck">
-			<button class="flip" id="flip" type="button" data-flip hidden>
-				<span class="flip__icon" aria-hidden="true">↻</span>
-				<span id="flip-text">Flip it over</span>
+			<button class="tag tag--flip" id="flip" type="button" data-flip aria-label="Show the tracklist" hidden>
+				<span class="tag__icon" aria-hidden="true">↻</span>
+				<span class="tag__text" id="flip-text">Tracklist</span>
 			</button>
-			<p class="status" id="status">
-				<span class="status__dot" aria-hidden="true"></span>
+			<p class="tag tag--status" id="status">
 				<span class="status__eq" aria-hidden="true"><i></i><i></i><i></i></span>
-				<span id="status-text">tuning in…</span>
+				<span class="tag__text" id="status-text">Tuning in…</span>
 			</p>
 			<nav class="links" aria-label="Elsewhere">
-				<a href="mailto:jeroensannen@hotmail.com?subject=Hey%20Jeroen!">mail</a>
-				<a href="https://www.linkedin.com/in/jeroensannen" target="_blank" rel="noopener">linkedin</a>
-				<a href="https://www.instagram.com/geronimo206" target="_blank" rel="noopener">instagram</a>
-				<a href="https://www.last.fm/user/Geronimo206" target="_blank" rel="noopener">last.fm</a>
-				<a href="https://soundcloud.com/geronimo206" target="_blank" rel="noopener">soundcloud</a>
+				<a class="tag" href="mailto:jeroensannen@hotmail.com?subject=Hey%20Jeroen!">Mail</a>
+				<a class="tag" href="https://www.linkedin.com/in/jeroensannen" target="_blank" rel="noopener">LinkedIn</a>
+				<a class="tag" href="https://www.instagram.com/geronimo206" target="_blank" rel="noopener">Instagram</a>
+				<a class="tag" href="https://www.last.fm/user/Geronimo206" target="_blank" rel="noopener">Last.fm</a>
+				<a class="tag" href="https://soundcloud.com/geronimo206" target="_blank" rel="noopener">SoundCloud</a>
 			</nav>
 		</div>
 

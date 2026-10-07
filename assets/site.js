@@ -18,20 +18,30 @@
 
 	const API = 'https://ws.audioscrobbler.com/2.0/';
 	const BLANK_ART = '2a96cbd8b46e442fc41c2b86b821562f';
-	const LEADS = ['includes the heavy-rotation hit', 'featuring the current obsession', 'contains the hit single', 'now on repeat'];
+
+	// The sleeve the inline script in <head> picked for this visit.
+	const SLEEVES = {
+		'silent-alarm': 'Silent Alarm',
+		weekend: 'A Weekend in the City',
+		intimacy: 'Intimacy',
+		four: 'Four',
+		hymns: 'Hymns',
+		'alpha-games': 'Alpha Games',
+		anatomy: 'Anatomy of a Brief Romance',
+	};
 
 	const $ = (id) => document.getElementById(id);
 	const root = document.documentElement;
 	const stage = $('stage');
 	const num = new Intl.NumberFormat('en');
 	const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-	const lead = LEADS[Math.floor(Math.random() * LEADS.length)];
 
 	let user = null;
 	let weekTop = null;
 	let featured = null;
 	let featureKey = '';
 	let flipTimer = 0;
+	let teaTimer = 0;
 
 	// ---------- helpers ----------
 
@@ -107,9 +117,10 @@
 	const since = () => (user ? new Date(user.registered.unixtime * 1000).getFullYear() : 2007);
 	const portrait = matchMedia('(max-aspect-ratio: 1/1)');
 
-	function sticker({ top, title, foot }) {
+	// Song titles go in quotes on a hype sticker; album and artist names don't.
+	function sticker({ top, title, foot, song = false }) {
 		$('sticker-top').textContent = top;
-		$('sticker-title').textContent = `“${title}”`;
+		$('sticker-title').textContent = song ? `“${title}”` : title;
 		$('sticker-title').dataset.size = title.length > 30 ? 's' : title.length > 16 ? 'm' : '';
 		$('sticker-foot').textContent = foot;
 		const node = $('sticker');
@@ -231,8 +242,8 @@
 		root.classList.toggle('is-live', live);
 		$('status').classList.toggle('is-live', live);
 		$('status-text').textContent = live
-			? `now playing · ${track.name} — ${artist}`
-			: track?.date ? `needle up · last played ${ago(track.date.uts)}` : 'needle up';
+			? `Now playing: ${track.name} — ${artist}`
+			: track?.date ? `Last played ${ago(track.date.uts)}` : 'Not playing';
 
 		if (live) {
 			await feature({
@@ -240,22 +251,25 @@
 				top: 'now spinning',
 				title: track.name,
 				foot: artist,
+				song: true,
 				image: art(track.image),
 			});
 		} else if (weekTop) {
 			await feature({
 				key: `top:${weekTop.url}`,
-				top: lead,
+				top: 'most played album this week',
 				title: weekTop.name,
-				foot: `${weekTop.artist.name} · ${num.format(weekTop.playcount)} plays this week`,
+				foot: `${weekTop.artist.name} · ${num.format(weekTop.playcount)} plays`,
 				image: art(weekTop.image),
 			});
 		} else if (track) {
+			const album = track.album['#text'];
 			await feature({
 				key: `last:${track.url}`,
 				top: 'last heard',
-				title: track.album['#text'] || track.name,
+				title: album || track.name,
 				foot: artist,
+				song: !album,
 				image: art(track.image),
 			});
 		}
@@ -278,10 +292,13 @@
 		const names = and(thanks.map((a) => a.name));
 		$('fine-credits').textContent = `${cat}. Produced, arranged and played to death by Jeroen Sannen.${names ? ` Special thanks to ${names}.` : ''}`;
 
-		const counts = [`${num.format(user.playcount)} scrobbles`];
-		if (user.album_count) counts.push(`${num.format(user.album_count)} albums`);
-		if (user.artist_count) counts.push(`${num.format(user.artist_count)} artists`);
-		$('fine-recorded').textContent = `Recorded ${since()}–${new Date().getFullYear()} over ${and(counts)}.`;
+		// last.fm now and then answers with all zeroes; leave the counts out rather than print those.
+		const counts = [[user.playcount, 'scrobbles'], [user.album_count, 'albums'], [user.artist_count, 'artists']]
+			.filter(([n]) => Number(n) > 0)
+			.map(([n, what]) => `${num.format(n)} ${what}`);
+		$('fine-recorded').textContent = counts.length
+			? `Recorded ${since()}–${new Date().getFullYear()} over ${and(counts)}.`
+			: `Recorded ${since()}–${new Date().getFullYear()}.`;
 	}
 
 	// EAN-13 bar patterns, fed with the all-time scrobble count. It even scans.
@@ -364,6 +381,7 @@
 			top: `bonus disc · all-time ${item.kind} #${item.rank}`,
 			title: item.name,
 			foot: item.kind === 'artist' ? `${plays} since ${since()}` : `${item.artist} · ${plays}`,
+			song: item.kind === 'track',
 		});
 	}
 
@@ -516,22 +534,40 @@
 		const hiding = toBack ? $('front') : $('back');
 		if (hiding.contains(document.activeElement)) $('flip').focus({ preventScroll: true });
 		if (toBack) hideSecret();
+		stage.classList.remove('is-peek');
 
-		// Going back to the front: let the sleeve turn before the record slides out again.
+		// To the back, the record slides into the sleeve before it turns; to the front, the sleeve
+		// turns before the record slides out again.
 		stage.style.setProperty('--record-delay', toBack ? '0s' : '.85s');
+		stage.style.setProperty('--sleeve-delay', toBack ? '.5s' : '0s');
 		clearTimeout(flipTimer);
-		flipTimer = setTimeout(() => stage.style.removeProperty('--record-delay'), 2000);
+		flipTimer = setTimeout(() => {
+			stage.style.removeProperty('--record-delay');
+			stage.style.removeProperty('--sleeve-delay');
+		}, 2000);
 
 		stage.dataset.side = toBack ? 'back' : 'front';
 		$('front').inert = toBack;
 		$('back').inert = !toBack;
-		$('flip').setAttribute('aria-pressed', String(toBack));
-		$('flip-text').textContent = toBack ? 'Back to the cover' : 'Flip it over';
+		$('flip').setAttribute('aria-label', toBack ? 'Show the front cover' : 'Show the tracklist');
+		$('flip-text').textContent = toBack ? 'Cover' : 'Tracklist';
+
+		// Linger on the back for a bit and someone brings you a cup of tea; it goes again when the
+		// record comes back out.
+		clearTimeout(teaTimer);
+		stage.classList.remove('has-tea');
+		if (toBack) {
+			const tea = Math.random() < 0.5 ? 'matcha' : 'chai';
+			new Image().src = `images/tea-${tea}.svg`;
+			teaTimer = setTimeout(() => {
+				$('tea').dataset.tea = tea;
+				stage.classList.add('has-tea');
+			}, 5000);
+		}
 	}
 
 	function enableHandling() {
 		$('flip').hidden = false;
-		$('flip').setAttribute('aria-pressed', 'false');
 		document.querySelector('.front__flip').disabled = false;
 
 		document.addEventListener('click', (event) => {
@@ -540,6 +576,19 @@
 		document.addEventListener('keydown', (event) => {
 			if (event.key === 'Escape') flip(false);
 		});
+		// The back of the sleeve turns it back over, unless you were selecting a track name.
+		$('back').addEventListener('click', () => {
+			if (!String(getSelection())) flip(false);
+		});
+
+		// Pointing at the label starts to turn the sleeve, so you can see what it will do.
+		const peek = (on) => stage.classList.toggle('is-peek', on);
+		if (matchMedia('(hover: hover)').matches) {
+			$('flip').addEventListener('pointerenter', () => peek(true));
+			$('flip').addEventListener('pointerleave', () => peek(false));
+		}
+		$('flip').addEventListener('focus', () => peek($('flip').matches(':focus-visible')));
+		$('flip').addEventListener('blur', () => peek(false));
 
 		enablePulling();
 
@@ -576,10 +625,12 @@
 		const now = new Date();
 		const cat = `JS ${String(now.getFullYear()).slice(2)}${String(isoWeek(now)).padStart(2, '0')}`;
 		$('cat-front').textContent = cat;
+		$('fine-after').textContent = SLEEVES[root.dataset.sleeve] || SLEEVES['silent-alarm'];
+
 
 		if (!CONFIG.apiKey) {
 			console.info('jeroensannen.be: add a last.fm API key in assets/site.js to press the record.');
-			$('status-text').textContent = 'needle up';
+			$('status-text').textContent = 'Not playing';
 			return ready();
 		}
 		const giveUp = setTimeout(ready, 3500);
@@ -600,7 +651,7 @@
 		side('side-b', yearTracks);
 		if (user) {
 			credits(cat, list(artists?.topartists?.artist));
-			barcode(user.playcount);
+			if (Number(user.playcount) > 0) barcode(user.playcount);
 		}
 		await refreshNow(true);
 		clearTimeout(giveUp);

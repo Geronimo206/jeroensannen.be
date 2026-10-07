@@ -12,7 +12,7 @@
 	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" />
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Cabin:wght@400..600&display=swap" />
 	<!-- Same desk as the homepage; absolute path because this page answers for any missing URL. -->
 	<link rel="stylesheet" href="/assets/site.css" />
 	<style>
@@ -25,29 +25,28 @@
 			padding: 9cqi 8cqi;
 			background: #f5f6f7;
 			color: #1a1a1a;
+			font-family: var(--sleeve-font);
 			border-radius: 2px;
 			box-shadow: 0 3cqi 7cqi -2cqi rgb(var(--shadow) / .6), 0 .4cqi 1cqi rgb(var(--shadow) / .35);
 		}
 		.lost h1 {
-			font-size: 17cqi;
-			font-weight: 250;
+			font-size: 19cqi;
+			font-weight: 400;
 			line-height: 1;
-			font-stretch: 125%;
 			letter-spacing: -.01em;
 			color: rgb(136 141 148 / .92);
 		}
 		.lost h1::after { content: "."; }
 		.lost__side {
 			margin-top: 3cqi;
-			font-size: max(8px, 2.4cqi);
+			font-size: max(9px, 3cqi);
 			line-height: 1.2;
-			font-stretch: 125%;
-			letter-spacing: .24em;
+			letter-spacing: .08em;
 			text-transform: uppercase;
 			color: #9ba0a6;
 		}
-		.lost ol { list-style: none; display: grid; gap: 1.6cqi; text-transform: uppercase; font-stretch: 112%; }
-		.lost li { font-size: max(12px, 4.6cqi); font-weight: 350; }
+		.lost ol { list-style: none; display: grid; gap: 1.6cqi; text-transform: uppercase; }
+		.lost li { font-size: max(13px, 5cqi); }
 		.lost li:nth-child(1) { color: #c9cac7; }
 		.lost li:nth-child(2) { color: #8e8f8c; }
 		.lost li:nth-child(3) { color: #1a1a1a; }
