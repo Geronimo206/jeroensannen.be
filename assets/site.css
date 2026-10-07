@@ -1,0 +1,707 @@
+/* jeroensannen.be — Heavy Rotation.
+   A record sleeve after Bloc Party's Silent Alarm: the photo is the front cover, the record
+   is whatever's on repeat, the back is the tracklist. */
+
+@property --tint {
+	syntax: '<color>';
+	inherits: true;
+	initial-value: #4a689c;
+}
+@property --sticker {
+	syntax: '<color>';
+	inherits: true;
+	initial-value: #f2c94c;
+}
+@property --paper-accent {
+	syntax: '<color>';
+	inherits: true;
+	initial-value: #9a3b25;
+}
+
+:root {
+	/* An oak desk, and dark ink for everything printed on it */
+	--desk: #b98a58;
+	--desk-photo: url(../images/oak-honey.webp);
+	--ink: #2b1d10;
+	--ink-2: rgb(43 29 16 / .78);
+	--ink-3: rgb(43 29 16 / .45);
+	--line: rgb(43 29 16 / .26);
+	--on-ink: #f7efe3;
+	--shadow: 50 26 8;
+	--accent: color-mix(in oklab, var(--tint) 70%, #000);
+
+	--paper: #ece6d9;
+	--paper-ink: #1d1a16;
+
+	--font: "Archivo", "Helvetica Neue", Arial, sans-serif;
+	--ease: cubic-bezier(.2, .7, .2, 1);
+	--grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
+	color-scheme: light;
+	transition: --tint 2s ease, --sticker 2s ease, --paper-accent 2s ease;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
+
+html, body { background: var(--desk); }
+
+body {
+	min-height: 100svh;
+	color: var(--ink);
+	font: 400 13px/1.4 var(--font);
+	-webkit-font-smoothing: antialiased;
+	-webkit-text-size-adjust: 100%;
+	text-size-adjust: 100%;
+	-webkit-tap-highlight-color: transparent;
+	overflow-x: hidden;
+	overflow-x: clip;
+}
+
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+
+/* With JavaScript, the page waits for its fonts (the inline script in the head caps that at 4s). */
+.js .page { opacity: 0; transition: opacity .7s ease; }
+.js.is-shown .page { opacity: 1; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* ---------- The room ---------- */
+
+.room {
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	/* Oak veneer, photographed: a seamless CC0 texture from Poly Haven (polyhaven.com) */
+	background: var(--desk-photo) 0 0 / 1400px repeat, var(--desk);
+}
+.room::before,
+.room::after { content: ""; position: absolute; inset: 0; }
+/* The album's colour, cast onto the wood */
+.room::before {
+	background: radial-gradient(48% 55% at 60% 46%, color-mix(in srgb, var(--tint) 75%, transparent), transparent 75%);
+	mix-blend-mode: soft-light;
+	opacity: .5;
+	transition: opacity 1.5s ease;
+}
+/* A desk lamp, and the edges of the desk falling into shadow */
+.room::after {
+	background:
+		radial-gradient(ellipse 65% 60% at 42% 42%, rgb(255 246 228 / .3), transparent 70%),
+		radial-gradient(ellipse 130% 110% at 50% 45%, transparent 50%, rgb(var(--shadow) / .45));
+}
+:root.is-live .room::before { opacity: 1; animation: breathe 6s ease-in-out infinite; }
+
+@keyframes breathe { 50% { opacity: .75; scale: 1.06; } }
+
+/* Disco lights: a short burst when someone finds the bonus disc */
+.room__lights {
+	position: absolute;
+	inset: -50%;
+	opacity: 0;
+	background: conic-gradient(from 0deg,
+		transparent 0deg 15deg, color-mix(in srgb, var(--sticker) 55%, transparent) 25deg, transparent 38deg 95deg,
+		color-mix(in srgb, var(--tint) 60%, transparent) 108deg, transparent 122deg 190deg,
+		rgb(246 207 69 / .5) 202deg, transparent 216deg 275deg,
+		color-mix(in srgb, var(--accent) 50%, transparent) 290deg, transparent 305deg);
+	filter: blur(40px);
+	mix-blend-mode: overlay;
+	transition: opacity 1.4s ease;
+}
+/* Only spin the lights while they're on: a huge blurred layer is not something to animate for nothing. */
+:root.is-party .room__lights { opacity: .9; transition-duration: .3s; animation: sweep 9s linear infinite; }
+
+@keyframes sweep { to { rotate: 360deg; } }
+
+/* ---------- Layout ---------- */
+
+.page {
+	--pad: clamp(16px, 4vw, 56px);
+	--s: min(68svh, calc((100vw - 2 * var(--pad)) / 1.78), 680px);
+	--stage-w: calc(var(--s) * 1.78);
+	--stage-h: var(--s);
+
+	position: relative;
+	z-index: 1;
+	min-height: 100svh;
+	display: grid;
+	place-content: center;
+	justify-items: start;
+	gap: clamp(22px, 4.5svh, 44px);
+	padding: var(--pad);
+}
+
+/* ---------- Stage: sleeve + record ---------- */
+
+.stage {
+	/* The record slides out along (--ax, --ay): sideways on landscape screens, upwards on portrait.
+	   Idle it sits close to the sleeve; while you're listening it comes all the way out. */
+	--ax: 1;
+	--ay: 0;
+	--out: calc(var(--s) * .66);
+
+	position: relative;
+	width: var(--stage-w);
+	height: var(--stage-h);
+	transform: perspective(1800px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+	transition: transform .9s var(--ease);
+}
+:root.is-live .stage { --out: calc(var(--s) * .8); }
+.stage.is-secret { --pull: calc(var(--s) * .14); }
+
+/* The record */
+
+.record {
+	--travel: calc(var(--out) + var(--nudge, 0px) + var(--pull, 0px));
+	position: absolute;
+	z-index: 1;
+	left: calc(var(--s) * .025);
+	top: calc(var(--s) * .025);
+	width: calc(var(--s) * .95);
+	height: calc(var(--s) * .95);
+	border-radius: 50%;
+	cursor: grab;
+	touch-action: pan-y;
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-touch-callout: none;
+	transform: translate(calc(var(--ax) * var(--travel)), calc(var(--ay) * var(--travel)));
+	transition:
+		transform 1.2s var(--ease) var(--record-delay, 0s),
+		visibility 0s linear var(--record-delay, 0s);
+}
+.js:not(.is-ready) .record { transform: none; }
+.stage[data-side="front"]:not(.is-pulling) .record:hover { --nudge: calc(var(--s) * .05); }
+.stage.is-pulling .record { cursor: grabbing; transition: none; }
+/* Let go past the stop and it springs out a little further. */
+.stage.is-secret .record { transition-timing-function: cubic-bezier(.34, 1.56, .64, 1); }
+
+/* On the back the record is inside the sleeve: slide it in, then it's gone before the sleeve turns. */
+.stage[data-side="back"] .record {
+	transform: none;
+	visibility: hidden;
+	transition: transform .5s var(--ease), visibility 0s linear .5s;
+}
+
+.record__disc {
+	position: absolute;
+	inset: 0;
+	border-radius: 50%;
+	background:
+		radial-gradient(circle closest-side, transparent 0 35%, rgb(255 255 255 / .06) 35.6% 36.2%, transparent 36.8%),
+		#0d0d0f;
+	box-shadow:
+		0 0 0 1px rgb(0 0 0 / .35),
+		0 calc(var(--s) * .03) calc(var(--s) * .06) calc(var(--s) * -.02) rgb(var(--shadow) / .7),
+		0 0 0 0 transparent;
+	filter: brightness(.82);
+	transition: box-shadow 1.5s ease, filter 1.5s ease;
+	animation: spin 1.8s linear infinite paused; /* 33⅓ rpm */
+}
+:root.is-live .record__disc {
+	animation-play-state: running;
+	filter: none;
+	box-shadow:
+		0 0 0 1px rgb(0 0 0 / .35),
+		0 calc(var(--s) * .03) calc(var(--s) * .06) calc(var(--s) * -.02) rgb(var(--shadow) / .7),
+		0 0 calc(var(--s) * .1) 0 color-mix(in srgb, var(--tint) 35%, transparent);
+}
+
+@keyframes spin { to { rotate: 360deg; } }
+
+.record__grooves {
+	position: absolute;
+	inset: 0;
+	border-radius: 50%;
+	background:
+		/* a bit of dust, so you can see it turn */
+		radial-gradient(circle at 28% 24%, rgb(255 255 255 / .35) 0 .12%, transparent .3%),
+		radial-gradient(circle at 71% 18%, rgb(255 255 255 / .25) 0 .1%, transparent .25%),
+		radial-gradient(circle at 82% 63%, rgb(255 255 255 / .3) 0 .12%, transparent .3%),
+		radial-gradient(circle at 22% 72%, rgb(255 255 255 / .22) 0 .1%, transparent .25%),
+		radial-gradient(circle at 57% 88%, rgb(255 255 255 / .28) 0 .1%, transparent .28%),
+		radial-gradient(circle closest-side, transparent 0 51.4%, rgb(255 255 255 / .07) 51.8% 52.4%, transparent 52.8%),
+		radial-gradient(circle closest-side, transparent 0 64.4%, rgb(255 255 255 / .07) 64.8% 65.4%, transparent 65.8%),
+		radial-gradient(circle closest-side, transparent 0 78.4%, rgb(255 255 255 / .07) 78.8% 79.4%, transparent 79.8%),
+		repeating-radial-gradient(circle closest-side, rgb(255 255 255 / .05) 0 1px, transparent 1px 3px);
+	-webkit-mask: radial-gradient(circle closest-side, transparent 0 39%, #000 39.5% 96%, transparent 96.6%);
+	mask: radial-gradient(circle closest-side, transparent 0 39%, #000 39.5% 96%, transparent 96.6%);
+}
+
+.record__label {
+	position: absolute;
+	left: 33%;
+	top: 33%;
+	width: 34%;
+	height: 34%;
+	display: grid;
+	place-items: center;
+	overflow: hidden;
+	border-radius: 50%;
+	background: radial-gradient(circle, #f4f4f1 0 55%, #e8e8e4 100%);
+	box-shadow: 0 0 0 1px rgb(0 0 0 / .6), inset 0 0 0 1px rgb(0 0 0 / .08);
+}
+.record__art {
+	position: absolute;
+	inset: 0;
+	background: center / cover no-repeat;
+	opacity: 0;
+	transition: opacity .6s ease;
+}
+.record__art.is-loaded { opacity: 1; }
+.record__label::after {
+	content: "";
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 7%;
+	height: 7%;
+	translate: -50% -50%;
+	border-radius: 50%;
+	background: #141519;
+	box-shadow: inset 0 1px 2px rgb(0 0 0 / .9), 0 0 0 1px rgb(255 255 255 / .12);
+}
+.record__label-text {
+	display: grid;
+	gap: calc(var(--s) * .07);
+	text-align: center;
+	text-transform: uppercase;
+	color: #8d9298;
+}
+.record__label-text b { font: 300 calc(var(--s) * .021)/1 var(--font); font-stretch: 125%; }
+.record__label-text i { font: 400 calc(var(--s) * .009)/1 var(--font); font-stretch: 125%; letter-spacing: .2em; }
+
+/* The bonus disc label, only for people who pull the record all the way out */
+.record__secret { display: none; position: absolute; inset: 0; width: 100%; height: 100%; }
+.record__secret-rim { fill: none; stroke: var(--paper-accent); stroke-width: 1.4; }
+.record__secret text {
+	fill: var(--paper-ink);
+	font: 700 6.4px var(--font);
+	font-stretch: 85%;
+	letter-spacing: .04em;
+}
+.record__secret .record__secret-mid {
+	fill: var(--paper-accent);
+	font-size: 8px;
+	font-weight: 800;
+	font-stretch: 125%;
+	letter-spacing: .12em;
+	text-anchor: middle;
+}
+.record__secret:not([data-kind="album"]) image,
+.record__secret[data-kind="album"] .record__secret-mid { display: none; }
+.stage.is-secret .record__label { background: var(--paper); }
+.stage.is-secret .record__label-text,
+.stage.is-secret .record__art { visibility: hidden; }
+.stage.is-secret .record__secret { display: block; }
+.stage.is-secret .sticker { --sticker: #f6cf45; }
+
+.confetti { position: fixed; inset: 0; z-index: 10; width: 100%; height: 100%; pointer-events: none; }
+
+.record__sheen {
+	position: absolute;
+	inset: 0;
+	border-radius: 50%;
+	pointer-events: none;
+	background: conic-gradient(from 210deg, transparent 0deg, rgb(255 255 255 / .1) 22deg, transparent 48deg 180deg, rgb(255 255 255 / .08) 202deg, transparent 228deg);
+	mix-blend-mode: screen;
+}
+
+/* The sleeve */
+
+.sleeve {
+	position: absolute;
+	z-index: 2;
+	left: 0;
+	top: 0;
+	width: var(--s);
+	height: var(--s);
+	perspective: 2400px;
+	container-type: size;
+}
+
+.sleeve__inner {
+	position: absolute;
+	inset: 0;
+	transform-style: preserve-3d;
+	transition: transform 1s var(--ease);
+}
+.stage[data-side="back"] .sleeve__inner { transform: rotateY(-180deg); transition-delay: .5s; }
+.front,
+.back { transition: visibility 0s linear .25s; }
+.back,
+.stage[data-side="back"] .front { visibility: hidden; }
+.stage[data-side="back"] .back { visibility: visible; }
+.stage[data-side="back"] .front,
+.stage[data-side="back"] .back { transition-delay: .75s; }
+
+.face {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	border-radius: 2px;
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+	box-shadow: 0 3cqi 7cqi -2cqi rgb(var(--shadow) / .6), 0 .4cqi 1cqi rgb(var(--shadow) / .35);
+}
+
+/* ---------- Front cover: snowy landscape, wide light caps with a full stop ---------- */
+
+.front { background: #f5f6f7; color: #1a1a1a; }
+.front__photo,
+.front__wear,
+.front__wrap { position: absolute; inset: 0; pointer-events: none; }
+
+.front__photo {
+	background: url(../images/bg.jpg) 50% 64% / cover no-repeat;
+	filter: grayscale(.8) brightness(2.35) contrast(.62);
+}
+
+.front__photo::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background-image: var(--grain);
+	opacity: .16;
+	mix-blend-mode: overlay;
+}
+
+.front__wear {
+	background:
+		/* ring wear from the record inside */
+		radial-gradient(circle closest-side at 51% 50%, transparent 90%, rgb(0 0 0 / .022) 93.5%, rgb(0 0 0 / .008) 96.5%, transparent 99%),
+		radial-gradient(ellipse at 50% 42%, transparent 55%, rgb(80 86 94 / .14)),
+		/* white sky above, snow below: the haze that makes it Silent Alarm */
+		linear-gradient(#f5f6f7 0 25%, rgb(245 246 247 / .88) 29%, rgb(245 246 247 / .6) 33%, rgb(245 246 247 / .3) 38%, rgb(245 246 247 / .08) 44%, transparent 48% 56%, rgb(245 246 247 / .6) 72%, #f5f6f7 90%);
+	box-shadow: inset 0 0 0 1px rgb(0 0 0 / .06), inset 0 0 2cqi rgb(0 0 0 / .05);
+}
+
+.front__type { position: absolute; left: 6.5cqi; right: 6cqi; top: 17cqi; }
+.front__type h1 {
+	font: 250 7.1cqi/1 var(--font);
+	font-stretch: 125%;
+	letter-spacing: -.01em;
+	text-transform: uppercase;
+	white-space: nowrap;
+	color: rgb(136 141 148 / .92);
+}
+.front__type h1::after { content: "."; }
+.front__type p {
+	margin-top: 1.7cqi;
+	padding-left: .5cqi;
+	font: 400 1.55cqi/1 var(--font);
+	font-stretch: 125%;
+	letter-spacing: .26em;
+	text-transform: uppercase;
+	color: #9ba0a6;
+}
+
+.front__cat {
+	position: absolute;
+	left: 6.5cqi;
+	bottom: 5.2cqi;
+	font: 500 1.7cqi/1 var(--font);
+	font-stretch: 125%;
+	letter-spacing: .22em;
+	color: rgb(136 141 148 / .8);
+}
+
+.front__wrap {
+	background: linear-gradient(115deg, transparent 30%, rgb(255 255 255 / .05) 39%, rgb(255 255 255 / .13) 41.5%, rgb(255 255 255 / .03) 45%, transparent 52% 72%, rgb(255 255 255 / .05) 79%, transparent 84%) var(--sheen, 50%) 50% / 230% 230%;
+	mix-blend-mode: screen;
+	transition: background-position .9s var(--ease);
+}
+
+/* The hype sticker */
+
+.sticker {
+	position: absolute;
+	right: 6cqi;
+	bottom: 6.5cqi;
+	width: 30cqi;
+	height: 30cqi;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 1cqi;
+	padding: 3.6cqi;
+	border-radius: 50%;
+	background: linear-gradient(160deg, rgb(255 255 255 / .14), transparent 45%, rgb(0 0 0 / .05)), var(--sticker);
+	color: #16130f;
+	text-align: center;
+	rotate: 8deg;
+	/* a die-cut edge catching the light, and a contact shadow only a fraction of a millimetre deep */
+	box-shadow:
+		inset 0 0 0 .22cqi rgb(255 255 255 / .28),
+		0 .06cqi .1cqi rgb(0 0 0 / .32),
+		0 .2cqi .5cqi -.1cqi rgb(0 0 0 / .12);
+}
+/* paper grain, printed over the ink */
+.sticker::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	background-image: var(--grain);
+	opacity: .22;
+	mix-blend-mode: multiply;
+	pointer-events: none;
+}
+.sticker.is-new { animation: slap .45s var(--ease); }
+
+@keyframes slap {
+	0%   { scale: 1.06; opacity: 0; rotate: 5deg; }
+	100% { scale: 1; opacity: 1; rotate: 8deg; }
+}
+
+.sticker__top,
+.sticker__foot {
+	font: 700 max(7px, 1.75cqi)/1.15 var(--font);
+	font-stretch: 85%;
+	letter-spacing: .09em;
+	text-transform: uppercase;
+}
+.sticker__foot { font-weight: 500; letter-spacing: .06em; }
+.sticker__title {
+	display: -webkit-box;
+	-webkit-line-clamp: 4;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	font: 900 4.1cqi/.96 var(--font);
+	font-stretch: 62%;
+	text-transform: uppercase;
+	overflow-wrap: anywhere;
+}
+.sticker__title[data-size="m"] { font-size: 3.4cqi; }
+.sticker__title[data-size="s"] { font-size: 2.8cqi; }
+
+.front__flip { position: absolute; inset: 0; cursor: pointer; }
+.front__flip:disabled { cursor: default; }
+.front__flip:focus-visible { outline-offset: -6px; }
+
+/* ---------- Back cover: white, the tracklist fading in from pale grey to black ---------- */
+
+.back {
+	transform: rotateY(180deg);
+	display: grid;
+	grid-template-rows: minmax(0, 1fr) auto;
+	gap: 4cqi;
+	padding: 7.5cqi 7cqi 6cqi;
+	background: #f4f4f1;
+	color: #1a1a1a;
+}
+.back::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background: radial-gradient(ellipse at 50% 40%, transparent 60%, rgb(60 60 50 / .1)), var(--grain);
+	opacity: .35;
+	mix-blend-mode: multiply;
+}
+.back > * { position: relative; }
+
+.sides {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	align-content: start;
+	gap: 5cqi;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.side h2 {
+	margin-bottom: 2.4cqi;
+	font: 400 max(7.5px, 1.35cqi)/1.2 var(--font);
+	font-stretch: 112%;
+	letter-spacing: .12em;
+	text-transform: uppercase;
+	color: #9d9d99;
+}
+
+.side ol { list-style: none; display: grid; gap: 1.7cqi; }
+.side li {
+	min-width: 0;
+	/* --k runs from 0 (first) to 1 (last): pale grey at the top, black at the bottom. */
+	color: color-mix(in srgb, #141414 calc(15% + var(--k, 1) * 85%), #cbcbc8);
+}
+.side li b,
+.side li i {
+	display: block;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	text-transform: uppercase;
+}
+.side li b {
+	font: 350 max(9.5px, 2.75cqi)/1.15 var(--font);
+	font-stretch: 100%;
+	letter-spacing: .005em;
+}
+.side li i {
+	font: 400 max(7.5px, 1.3cqi)/1.45 var(--font);
+	font-stretch: 112%;
+	letter-spacing: .1em;
+	color: #a5a5a1;
+}
+.side .empty { color: #a5a5a1; }
+
+.back__foot {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: end;
+	gap: 5cqi;
+}
+.fine {
+	max-width: 52cqi;
+	font: 400 max(6.5px, 1.15cqi)/1.45 var(--font);
+	color: #8f8f8b;
+}
+.fine p + p { margin-top: .6em; }
+
+.back__marks { display: flex; align-items: flex-end; gap: 3cqi; }
+.back__logo {
+	font: 500 max(8px, 1.9cqi)/1 var(--font);
+	font-stretch: 112%;
+	letter-spacing: .04em;
+	color: #6f6f6b;
+}
+.barcode { width: 19cqi; text-align: center; }
+.barcode svg { display: block; width: 100%; height: 7cqi; fill: #1a1a1a; }
+.barcode span {
+	display: block;
+	margin-top: .6cqi;
+	font: 500 max(6.5px, 1.25cqi)/1 var(--font);
+	letter-spacing: .14em;
+	font-variant-numeric: tabular-nums;
+	white-space: pre;
+}
+
+/* Rows and fine print follow the size of the sleeve, not the window */
+@container (max-width: 440px) {
+	.side ol li:nth-child(n + 7) { display: none; }
+	.fine__legal, .fine__urls { display: none; }
+}
+
+/* ---------- Deck: controls under the record ---------- */
+
+.deck {
+	width: var(--stage-w);
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 14px 26px;
+	font-size: 14px;
+	color: var(--ink-2);
+}
+
+.flip {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	padding: 9px 18px 9px 14px;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	font-weight: 600;
+	font-stretch: 105%;
+	letter-spacing: .02em;
+	color: var(--ink);
+	transition: background-color .25s, color .25s, border-color .25s;
+}
+.flip:hover { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+.flip__icon { display: inline-block; font-size: 15px; transition: rotate .8s var(--ease); }
+.flip[aria-pressed="true"] .flip__icon { rotate: -180deg; }
+
+/* Status: a lit-up pill with a little equaliser while you're listening */
+.status {
+	flex: 0 1 auto;
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+	padding: 7px 0;
+	border-radius: 17px; /* a pill on one line, a tidy rounded box when it wraps on a phone */
+	transition: color .2s, background-color .5s, box-shadow .5s, padding .5s;
+}
+.status > span:last-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.status__dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
+.status.is-live {
+	padding: 7px 16px 7px 13px;
+	background: color-mix(in srgb, var(--accent) 10%, rgb(255 248 236 / .4));
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
+	color: var(--ink);
+	font-weight: 500;
+}
+.status.is-live .status__dot { display: none; }
+
+.status__eq { display: none; flex: none; align-items: flex-end; gap: 2px; height: 11px; }
+.status.is-live .status__eq { display: inline-flex; }
+.status__eq i {
+	width: 3px;
+	height: 100%;
+	border-radius: 1px;
+	background: var(--accent);
+	transform-origin: bottom;
+	animation: eq .9s ease-in-out infinite alternate;
+}
+.status__eq i:nth-child(2) { animation-duration: .7s; animation-delay: -.3s; }
+.status__eq i:nth-child(3) { animation-duration: 1.1s; animation-delay: -.6s; }
+
+@keyframes eq {
+	from { scale: 1 .25; }
+	to   { scale: 1 1; }
+}
+
+.links { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-left: auto; }
+.links a { transition: color .2s; }
+.links a:hover { color: var(--ink); }
+
+/* Burnt into the desk: the lamp catches the lower lip of each groove */
+.deck {
+	--burn: 66 32 10;
+	--lip: 0 1px 0 rgb(255 238 210 / .5);
+	color: rgb(var(--burn) / .92);
+	font-weight: 600;
+}
+.deck :is(.flip, .status, .links a) { text-shadow: var(--lip); }
+.flip {
+	border: 1.5px solid rgb(var(--burn) / .75);
+	color: rgb(var(--burn) / .95);
+	background: rgb(var(--burn) / .05);
+	box-shadow: var(--lip), inset 0 1px 1px rgb(var(--burn) / .3);
+}
+.flip:hover { background: rgb(var(--burn) / .9); color: #f7efe3; text-shadow: none; }
+.status__dot { background: rgb(var(--burn) / .8); box-shadow: var(--lip); }
+.status.is-live {
+	background: rgb(var(--burn) / .08);
+	box-shadow: var(--lip), inset 0 1px 2px rgb(var(--burn) / .35);
+	color: rgb(var(--burn));
+}
+.status__eq i { background: rgb(var(--burn)); }
+.links a { color: rgb(var(--burn) / .9); }
+.links a:hover { color: rgb(var(--burn)); }
+
+/* ---------- Portrait: the record slides out of the top ---------- */
+
+@media (max-aspect-ratio: 1/1) {
+	.page {
+		--s: min(calc(100vw - 2 * var(--pad)), calc((100svh - 150px) / 1.66), 560px);
+		--stage-w: var(--s);
+		--stage-h: calc(var(--s) * 1.66);
+		place-content: start center;
+		padding-top: max(var(--pad), 4svh);
+	}
+	.stage { --ax: 0; --ay: -1; }
+	:root.is-live .stage { --out: calc(var(--s) * .74); }
+	.stage.is-secret { --pull: calc(var(--s) * .05); }
+	.sleeve { top: calc(var(--s) * .66); }
+	.record { top: calc(var(--s) * .685); touch-action: pan-x; }
+	.status > span:last-child { white-space: normal; }
+	.links { margin-left: 0; width: 100%; padding-top: 14px; border-top: 1px solid var(--line); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	:root { transition: none; }
+	*, *::before, *::after { animation: none !important; transition: none !important; }
+}
