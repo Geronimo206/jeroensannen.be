@@ -962,13 +962,14 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 
 /* ---------- Deck: stitched leather tags, laser-engraved, lying on the desk ---------- */
 
+/* One row: the status takes whatever room the other tags leave it (on a phone they stack instead) */
 .deck {
 	width: var(--stage-w);
 	display: flex;
-	flex-wrap: wrap;
 	align-items: center;
 	gap: 14px;
 }
+.deck > * { flex: none; }
 
 .tag {
 	--leather: #3d2617;
@@ -1041,7 +1042,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .stage:has(.front__flip:not(:disabled):hover) + .deck .tag--flip,
 .stage:has(.back:hover) + .deck .tag--flip { --lift: 2px; rotate: calc(var(--tilt) * .4); }
 
-.tag--status { --tilt: .5deg; flex: 0 1 auto; max-width: min(100%, 380px); }
+.tag--status { --tilt: .5deg; flex: 0 1 auto; }
 /* While I'm listening it's an oxblood tag */
 .tag--status.is-live { --leather: #4a1511; --stamp: #ecc2a4; }
 .status__eq { display: none; flex: none; align-items: flex-end; gap: 2px; height: 10px; }
@@ -1064,7 +1065,49 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 }
 
 .links { display: flex; flex-wrap: wrap; gap: 10px; margin-left: auto; }
-.links .tag { height: 32px; padding-inline: 14px; }
+/* The links are small square tags with the logo stamped into the leather, like the lettering */
+.links .tag { width: 42px; height: 34px; padding: 0; justify-content: center; }
+.tag__glyph {
+	flex: none;
+	width: 16px;
+	height: 16px;
+	fill: var(--stamp);
+	filter: drop-shadow(0 -1px 0 rgb(0 0 0 / .6)) drop-shadow(0 1px 0 rgb(255 228 196 / .14));
+}
+/* The name is there for screen readers, and shows above the tag when you point at it or tab to it */
+.links .tag__text {
+	position: absolute;
+	bottom: calc(100% + 9px);
+	left: 50%;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+@media (hover: hover) {
+	.links .tag:is(:hover, :focus-visible) .tag__text {
+		width: auto;
+		height: auto;
+		padding: 6px 9px 5px;
+		clip-path: none;
+		translate: -50% 0;
+		rotate: calc(var(--tilt) * -1);
+		border-radius: 3px;
+		background: rgb(30 18 9 / .9);
+		color: #f3e6d4;
+		font-size: 10.5px;
+		letter-spacing: .14em;
+		text-shadow: none;
+		box-shadow: 0 2px 6px rgb(var(--shadow) / .35);
+		animation: label-in .18s var(--ease);
+	}
+}
+@keyframes label-in { from { opacity: 0; translate: -50% 3px; } }
+/* On a touch screen every tag gets a full fingertip to aim at */
+@media (pointer: coarse) {
+	.tag::after { content: ""; position: absolute; inset: -6px -5px; }
+}
 .links .tag:nth-child(1) { --tilt: -.9deg; }
 .links .tag:nth-child(2) { --tilt: .6deg; }
 .links .tag:nth-child(3) { --tilt: -.3deg; }
@@ -1149,6 +1192,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 	.sleeve { top: calc(var(--s) * .66); }
 	.record { top: calc(var(--s) * .685); touch-action: pan-x; }
 	.tea { --size: calc(var(--s) * .62); left: calc(var(--s) * .5 - var(--size) / 2); top: calc(var(--s) * .33 - var(--size) / 2); translate: calc(var(--s) * .14) calc(var(--s) * -.08); }
+	.deck { flex-wrap: wrap; }
 	.links { margin-left: 0; }
 }
 
